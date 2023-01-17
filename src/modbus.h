@@ -1,10 +1,18 @@
 #ifndef __MODBUS_H__
 #define __MODBUS_H__
 
-int setup_uart(char *device);
+#include <sys/time.h>
 
-char *receber_mensagem(int fd, char dst, char code, char *data, int size);
-char *receber_mensagem_dinamica(int fd, char dst, char code, char *data);
-int enviar_mensagem(int fd, char dst, char code, char *data, int size);
+typedef struct {
+    int fd;
+    char dst;
+    char src;
+    struct timeval last_read;
+} Uart;
 
+
+int setup_uart(char *device, Uart *uart);
+int receive_header(Uart *uart, char *buffer);
+char *receive_message(Uart *uart, char *buffer, int size);
+int send_message(Uart *uart, char code, char *data, int size);
 #endif
