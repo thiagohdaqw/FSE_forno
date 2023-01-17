@@ -5,7 +5,7 @@
 #include <termios.h>
 #include <fcntl.h>
 
-#include "../inc/crc16.h"
+#include <crc16.h>
 #include "modbus.h"
 
 int setup_uart(char *device) {
