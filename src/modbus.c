@@ -13,7 +13,7 @@
 
 #define READ_UART_MIN_US 100 * 1000
 
-int setup_uart(char *device, Uart *uart) {
+int init_uart(char *device, Uart *uart) {
   uart->fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
 
   if (uart->fd == -1) {
@@ -54,14 +54,14 @@ int receive_data(Uart *uart, char *data, int size) {
 }
 
 int receive_header(Uart *uart, char *buffer) {
-  if (!receive_data(uart->fd, buffer, 3) || uart->src != buffer[0]) {
+  if (!receive_data(uart, buffer, 3) || uart->src != buffer[0]) {
     return 0;
   }
   return 1;
 }
 
 char *receive_message(Uart *uart, char *buffer, int size) {
-  if (!receive_data(uart->fd, buffer + 3, size + 2)) {
+  if (!receive_data(uart, buffer + 3, size + 2)) {
     return 0;
   }
 
@@ -89,5 +89,5 @@ int send_message(Uart *uart, char code, char *data, int size) {
 
   sended += write(uart->fd, &crc, 2);
 
-  return sended == 1 + 1 + size + 2
+  return sended == 1 + 1 + size + 2;
 }

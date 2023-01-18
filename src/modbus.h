@@ -11,7 +11,7 @@ typedef struct {
 } Uart;
 
 
-int setup_uart(char *device, Uart *uart);
+int init_uart(char *device, Uart *uart);
 int receive_header(Uart *uart, char *buffer);
 char *receive_message(Uart *uart, char *buffer, int size);
 int send_message(Uart *uart, char code, char *data, int size);

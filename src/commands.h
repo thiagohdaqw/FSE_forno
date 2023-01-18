@@ -2,7 +2,7 @@
 #define __COMMANDS_H__
 
 #include "modbus.h"
-#include "defs.h"
+#include "state.h"
 
 #define COMMAND_MESSAGE_MAX_SIZE 10
 
@@ -13,13 +13,13 @@ typedef struct
     int message_size;
 } Command;
 
-typedef void (*CommandCallback)(Command *command, char *message, States *states);
+typedef void (*CommandCallback)(Command *command, char *message, State *states);
 
 typedef struct
 {
     Uart *uart;
     char identifier[4];
-    States *states;
+    State *states;
     int commands_size;
     Command *commands;
     CommandCallback *callbacks;
