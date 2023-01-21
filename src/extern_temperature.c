@@ -1,0 +1,54 @@
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include "extern_temperature.h"
+#include "bme.h"
+
+typedef struct {
+    pthread_t tid;
+    State *state;
+    CommandArgs *commands;
+} ExternTemperatureArgs;
+
+void *run_extern_temperature_worker(void *args);
+
+void init_extern_temperature(State *state, CommandArgs *commands) {
+    ExternTemperatureArgs *args = malloc(sizeof(ExternTemperatureArgs));
+    
+    args->commands = commands;
+    args->state = state;
+
+    state->extern_temperature_device = init_bme280(EXTERN_TEMPERATURE_ADDRESS);
+
+    pthread_create(&args->tid, NULL, run_extern_temperature_worker, args);
+}
+
+void *run_extern_temperature_worker(void *args) {
+    ExternTemperatureArgs *targs = (ExternTemperatureArgs *)args;
+    State *state = targs->state;
+    CommandArgs *commands = targs->commands;
+    int8_t result;
+    float temperature;
+    while (1) {
+        sem_wait(&state->working_event);
+
+        if (!state->is_working) {
+            continue;
+        }
+
+        result = get_sensor_data_forced_mode(state->extern_temperature_device, &temperature);
+        if (result == BME280_OK) {
+            state->extern_temperature = temperature;
+            printf("Extern Temperature = %.2f\n", temperature);
+            send_command(COMMAND_SEND_EXTERN_TEMPERATURE, state);
+        }
+
+        if (state->is_working) {
+            sem_post(&state->working_event);
+        }
+
+        sleep(EXTERN_TEMPERATURE_POLLING_SECONDS);
+    }
+}

@@ -10,6 +10,7 @@
 #include "control.h"
 #include "commands.h"
 #include "user_interface.h"
+#include "extern_temperature.h"
 
 static const char identifier[4] = { 0, 3, 7, 7 };
 static State global_state;
@@ -25,6 +26,8 @@ int main() {
     init_uart(&uart, UART_DEVICE, ESP32_ADDRESS, APP_ADDRESS, identifier);
     CommandArgs *commands = init_commands(&global_state, &uart, identifier);
     init_control(&global_state, commands);
+    init_extern_temperature(&global_state, commands);
+
     run_user_interface(&global_state);
 }
 

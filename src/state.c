@@ -1,4 +1,5 @@
 #include "state.h"
+#include "control.h"
 
 void set_default_state(State *state) {
     state->extern_temperature = 0;

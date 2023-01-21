@@ -10,8 +10,6 @@ INC = $(wildcard $(INCDIR)/*.c, $(OBJDIR)/%.o)
 OBJ = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRC))
 EXE = bin/bin
 
-ARGS ?= /dev/i2c-1
-
 all: clean $(EXE) 
     
 $(EXE): $(OBJ)
@@ -25,4 +23,4 @@ clean:
 	-rm -f $(OBJDIR)/*.o $(EXE)
 
 run: all
-	$(EXE) $(ARGS)
+	$(EXE)

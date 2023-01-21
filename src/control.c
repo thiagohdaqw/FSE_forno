@@ -4,9 +4,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "commands.h"
+#include "pid.h"
 #include "state.h"
 #include "control.h"
+#include "commands.h"
 
 typedef struct {
     pthread_t tid;
@@ -14,19 +15,20 @@ typedef struct {
     CommandArgs *commands;
 } ControlArgs;
 
-void *control_worker(void *args);
+void *run_control_worker(void *args);
 
 void init_control(State *state, CommandArgs *commands) {
     ControlArgs *args = malloc(sizeof(ControlArgs));
     args->commands = commands;
     args->state = state;
-    pthread_create(&args->tid, NULL, control_worker, args);
+    pthread_create(&args->tid, NULL, run_control_worker, args);
 }
 
-void *control_worker(void *args) {
+void *run_control_worker(void *args) {
     ControlArgs *cargs = (ControlArgs *)args;
     State *state = cargs->state;
     CommandArgs *commands = cargs->commands;
+    double pid;
 
     while (1) {
         sem_wait(&state->working_event);
@@ -35,13 +37,16 @@ void *control_worker(void *args) {
             continue;
         }
 
-        printf("Calculando PID\n");
+        pid_configura_constantes(state->pid.kp, state->pid.ki, state->pid.kd);
+        pid_atualiza_referencia(state->reference_temperature);
+        pid = pid_controle(state->intern_temperature);
+
+        printf("REF=%f IN=%f PID=%f\n", state->reference_temperature, state->intern_temperature, pid);
 
         if (state->is_working) {
             sem_post(&state->working_event);
         }
 
-        sleep(CONTROL_POLLING_S);
+        sleep(CONTROL_POLLING_SECONDS);
     }
-    printf("FIM\n");
 }

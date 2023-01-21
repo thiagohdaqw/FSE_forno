@@ -34,7 +34,7 @@ CommandArgs *init_commands(State *state, Uart *uart, const char *identifier) {
 }
 
 void send_command(int command, State *state) {
-    printf("Sending: %d\n", command);
+    // printf("Sending: %d\n", command);
     commands.send_funcs[command](&commands.commands[command], state, commands.uart);
 }
 

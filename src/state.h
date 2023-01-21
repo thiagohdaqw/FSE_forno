@@ -4,6 +4,8 @@
 #include <string.h>
 #include <semaphore.h>
 
+#include <bme280.h>
+
 #define ESP32_ADDRESS 0x01
 #define APP_ADDRESS 0x00
 #define UART_DEVICE "/dev/serial0"
@@ -14,10 +16,6 @@
 #define REFERENCE_TEMPERATURE_MODE_FILE 1
 #define REFERENCE_TEMPERATURE_MODE_DEBUG 2
 #define REFERENCE_TEMPERATURE_MODE_DEFAULT REFERENCE_TEMPERATURE_MODE_UART
-
-#define PID_KP_DEFAULT 30.0
-#define PID_KI_DEFAULT 0.2
-#define PID_KD_DEFAULT 400.0
 
 #define WORKING_EVENT_SIZE 1
 
@@ -44,6 +42,7 @@ typedef struct {
 
     sem_t working_event;
     PID pid;
+    struct bme280_dev *extern_temperature_device;
 } State;
 
 void set_default_state(State *state);
