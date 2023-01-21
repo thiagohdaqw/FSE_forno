@@ -93,11 +93,10 @@ void *read_commands(void *commands_args) {
 
 void read_intern_temperature_read_command(Command *command, char *message, State *state) {
     memcpy(&state->intern_temperature, message, 4);
-    //printf("Intern temperature: %f\n", state->intern_temperature);
 }
 
 void read_reference_temperature_read_command(Command *command, char *message, State *state) {
-    if (state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_UART) {
+    if (state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_UART && !state->reference_temperature.is_debug) {
         memcpy(&state->reference_temperature, message, 4);
     }
 }
