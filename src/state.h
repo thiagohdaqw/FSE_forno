@@ -2,6 +2,7 @@
 #define __STATE_H__
 
 #include <string.h>
+#include <semaphore.h>
 
 #define ESP32_ADDRESS 0x01
 #define APP_ADDRESS 0x00
@@ -17,6 +18,8 @@
 #define PID_KP_DEFAULT 30.0
 #define PID_KI_DEFAULT 0.2
 #define PID_KD_DEFAULT 400.0
+
+#define WORKING_EVENT_SIZE 1
 
 typedef struct {
     float kp;
@@ -38,6 +41,8 @@ typedef struct {
 
     char is_working;
     char is_heating;
+
+    sem_t working_event;
     PID pid;
 } State;
 
