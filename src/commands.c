@@ -27,13 +27,12 @@ CommandArgs *init_commands(State *state, Uart *uart, const char *identifier) {
 
     pthread_create(&tid, NULL, send_commands, NULL);
     pthread_create(&tid, NULL, read_commands, NULL);
-    read_commands(NULL);
     send_default_state_command(state, 0);
     return &commands;
 }
 
 void send_command(int command, State *state) {
-    // printf("c=%d, %d %d\n", command, commands.commands[command].code, commands.commands[command].sub_code);
+    printf("Sending: %d\n", command);
     commands.send_funcs[command](&commands.commands[command], state, commands.uart);
 }
 
@@ -103,7 +102,7 @@ void send_default_state_command(State *state, char working) {
     set_default_state(state);
     state->is_working = working;
 
-    send_command(COMMAND_SEND_WORKING_STATE, state);
+    send_command(COMMAND_SEND_WORKING_STATUS, state);
     send_command(COMMAND_SEND_HEATING_STATUS, state);
     send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
 }
@@ -131,7 +130,7 @@ void read_user_command(Command *command, char *message, State *state) {
         send_command(COMMAND_SEND_HEATING_STATUS, state);
         break;
     case USER_COMMAND_MENU:
-        if (state->reference_temperature_mode != REFERENCE_TEMPERATURE_MODE_DEBUG) {
+        if (!state->reference_temperature_debug_mode) {
             state->reference_temperature_mode = state->reference_temperature_mode == REFERENCE_TEMPERATURE_MODE_UART
                                                     ? REFERENCE_TEMPERATURE_MODE_FILE
                                                     : REFERENCE_TEMPERATURE_MODE_UART;
@@ -167,15 +166,31 @@ void send_extern_temperature_command(Command *command, State *state, Uart *uart)
 }
 
 void read_working_status_command(Command *command, char *message, State *state) {
-    printf("working = %d\n", *((int *)message));
+    int working = 0;
+    memcpy(&working, message, 4);
+    printf("working = %d, current = %d\n", working, state->is_working);
+
+    if (working != state->is_working) {
+        send_command(COMMAND_SEND_WORKING_STATUS, state);
+    }
 }
 
 void read_reference_temperature_mode_command(Command *command, char *message, State *state) {
-    printf("reference temperature mode = %d\n", *((int *)message));
+    int reference_temperature_mode = 0;
+    memcpy(&reference_temperature_mode, message, 4);
+    printf("reference temperature mode received = %d, current=%d\n", reference_temperature_mode, state->reference_temperature_mode);
+    if (reference_temperature_mode != state->reference_temperature_mode) {
+        send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
+    }
 }
 
 void read_heating_status_command(Command *command, char *message, State *state) {
-    printf("heating = %d\n", *((int *)message));
+    int heating_status = 0;
+    memcpy(&heating_status, message, 4);
+    printf("heating = %d, current = %d\n", heating_status, state->is_heating);
+    if (heating_status != state->is_heating) {
+        send_command(COMMAND_SEND_HEATING_STATUS, state);
+    }
 }
 
 void read_empty_command(Command *command, char *message, State *state) {}
@@ -226,11 +241,11 @@ void fill_commands() {
     commands.read_funcs[COMMAND_SEND_REFERENCE_TEMPERATURE] = read_empty_command;
     commands.send_funcs[COMMAND_SEND_REFERENCE_TEMPERATURE] = send_reference_temperature_command;
 
-    commands.commands[COMMAND_SEND_WORKING_STATE].code = 0x16;
-    commands.commands[COMMAND_SEND_WORKING_STATE].sub_code = 0xD3;
-    commands.commands[COMMAND_SEND_WORKING_STATE].message_size = 4;
-    commands.read_funcs[COMMAND_SEND_WORKING_STATE] = read_working_status_command;
-    commands.send_funcs[COMMAND_SEND_WORKING_STATE] = send_working_status_command;
+    commands.commands[COMMAND_SEND_WORKING_STATUS].code = 0x16;
+    commands.commands[COMMAND_SEND_WORKING_STATUS].sub_code = 0xD3;
+    commands.commands[COMMAND_SEND_WORKING_STATUS].message_size = 4;
+    commands.read_funcs[COMMAND_SEND_WORKING_STATUS] = read_working_status_command;
+    commands.send_funcs[COMMAND_SEND_WORKING_STATUS] = send_working_status_command;
 
     commands.commands[COMMAND_SEND_REFERENCE_TEMPERATURE_MODE].code = 0x16;
     commands.commands[COMMAND_SEND_REFERENCE_TEMPERATURE_MODE].sub_code = 0xD4;

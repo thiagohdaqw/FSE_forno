@@ -22,7 +22,7 @@ int main() {
     init_uart(&uart, UART_DEVICE, ESP32_ADDRESS, APP_ADDRESS, identifier);
 
     init_commands(&global_state, &uart, identifier);
-
+    // pause();
     run_user_interface(&global_state);
 }
 

@@ -8,6 +8,4 @@ void set_default_state(State *state) {
     state->pid.kd = PID_KD_DEFAULT;
 
     state->reference_temperature_mode = REFERENCE_TEMPERATURE_MODE_DEFAULT;
-
-    state->is_working = 0;
 }

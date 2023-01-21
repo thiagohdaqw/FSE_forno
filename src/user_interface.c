@@ -42,7 +42,8 @@ void run_reference_temperature_interface(State *state) {
         switch (read_reference_temperature_menu(state)) {
         case '1':
             state->reference_temperature_mode =
-                REFERENCE_TEMPERATURE_MODE_DEBUG;
+                REFERENCE_TEMPERATURE_MODE_FILE;
+            state->reference_temperature_debug_mode = 1;
             printf("Temperatura de referencia: ");
             scanf(" %f", &state->reference_temperature);
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE, state);
@@ -50,11 +51,13 @@ void run_reference_temperature_interface(State *state) {
             break;
         case '2':
             state->reference_temperature_mode = REFERENCE_TEMPERATURE_MODE_UART;
+            state->reference_temperature_debug_mode = 0;
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
             break;
         case '3':
             state->reference_temperature_mode = REFERENCE_TEMPERATURE_MODE_FILE;
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
+            state->reference_temperature_debug_mode = 0;
             break;
         case '0':
             return;
@@ -81,6 +84,7 @@ char read_reference_temperature_menu(State *state) {
     clear_console();
     repeat_caracter('=', 100, '\n');
     printf("--- - Temperatura de Referencia (TR)\n");
+    printf("[0] - Voltar\n");
     printf("[%c] - Modo Debug\n",
            state->reference_temperature_mode == REFERENCE_TEMPERATURE_MODE_DEBUG
                ? '*'
@@ -93,7 +97,6 @@ char read_reference_temperature_menu(State *state) {
            state->reference_temperature_mode == REFERENCE_TEMPERATURE_MODE_FILE
                ? '*'
                : '3');
-    printf("[0] - Voltar\n");
     repeat_caracter('=', 100, '\n');
     scanf(" %c", &option);
     return option;

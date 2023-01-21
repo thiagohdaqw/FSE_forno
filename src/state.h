@@ -9,9 +9,9 @@
 
 #define FAN_MIN_PERCENT 40.0
 
-#define REFERENCE_TEMPERATURE_MODE_DEBUG 0
-#define REFERENCE_TEMPERATURE_MODE_UART 1
-#define REFERENCE_TEMPERATURE_MODE_FILE 2
+#define REFERENCE_TEMPERATURE_MODE_UART 0
+#define REFERENCE_TEMPERATURE_MODE_FILE 1
+#define REFERENCE_TEMPERATURE_MODE_DEBUG 2
 #define REFERENCE_TEMPERATURE_MODE_DEFAULT REFERENCE_TEMPERATURE_MODE_UART
 
 #define PID_KP_DEFAULT 30.0
@@ -34,6 +34,7 @@ typedef struct {
 
     float reference_temperature;
     char reference_temperature_mode;
+    char reference_temperature_debug_mode;
 
     char is_working;
     char is_heating;
