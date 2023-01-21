@@ -2,6 +2,7 @@
 #define __MODBUS_H__
 
 #include <sys/time.h>
+#include <semaphore.h>
 
 #define BUFFER_SIZE 100
 
@@ -18,6 +19,7 @@ typedef struct {
     struct timeval last_read;
     const char *identifier;
     Buffer buffer;
+    sem_t send_mutex;
 } Uart;
 
 

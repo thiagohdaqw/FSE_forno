@@ -47,5 +47,6 @@ typedef struct {
 
 CommandArgs *init_commands(State *state, Uart *uart, const char *identifier);
 void send_command(int command, State *state);
+void send_default_state_command(State *state, char working);
 
 #endif

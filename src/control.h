@@ -4,12 +4,18 @@
 #include "state.h"
 #include "commands.h"
 
+#define RESISTOR_PIN    4
+#define FAN_PIN         5
+
+#define FAN_MIN_PERCENT 40
+
 #define CONTROL_POLLING_SECONDS 1
 
 #define PID_KP_DEFAULT 30.0
 #define PID_KI_DEFAULT 0.2
 #define PID_KD_DEFAULT 400.0
 
-void init_control(State *state, CommandArgs *commands);
+void stop_control();
+void init_control(State *state);
 
 #endif

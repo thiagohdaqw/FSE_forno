@@ -115,7 +115,7 @@ void read_user_command(Command *command, char *message, State *state) {
     int user_command = -1;
     memcpy(&user_command, message, 4);
 
-    printf("Command: %d\n", user_command);
+    // printf("Command: %d\n", user_command);
 
     switch (user_command) {
     case USER_COMMAND_ON:
@@ -123,7 +123,6 @@ void read_user_command(Command *command, char *message, State *state) {
         
         if (previous_working_status == 0) {
             for (int i=0; i < WORKING_EVENT_SIZE; i++) {
-                printf("Liberando\n");
                 sem_post(&state->working_event);
             }
         }
@@ -132,9 +131,10 @@ void read_user_command(Command *command, char *message, State *state) {
         send_default_state_command(state, 0);
         break;
     case USER_COMMAND_HEATING_ON:
-        if (state->is_working) {
-            state->is_heating = 1;
-            send_command(COMMAND_SEND_HEATING_STATUS, state);
+        state->is_heating = state->is_working;
+        send_command(COMMAND_SEND_HEATING_STATUS, state);
+        if (state->is_heating) {
+            sem_post(&state->heating_event);
         }
         break;
     case USER_COMMAND_HEATING_OFF:
@@ -180,8 +180,6 @@ void send_extern_temperature_command(Command *command, State *state, Uart *uart)
 void read_working_status_command(Command *command, char *message, State *state) {
     int working = 0;
     memcpy(&working, message, 4);
-    //printf("working = %d, current = %d\n", working, state->is_working);
-
     if (working != state->is_working) {
         send_command(COMMAND_SEND_WORKING_STATUS, state);
     }
@@ -190,7 +188,6 @@ void read_working_status_command(Command *command, char *message, State *state) 
 void read_reference_temperature_mode_command(Command *command, char *message, State *state) {
     int reference_temperature_mode = 0;
     memcpy(&reference_temperature_mode, message, 4);
-    //printf("reference temperature mode received = %d, current=%d\n", reference_temperature_mode, state->reference_temperature_mode);
     if (reference_temperature_mode != state->reference_temperature_mode) {
         send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
     }
@@ -199,7 +196,6 @@ void read_reference_temperature_mode_command(Command *command, char *message, St
 void read_heating_status_command(Command *command, char *message, State *state) {
     int heating_status = 0;
     memcpy(&heating_status, message, 4);
-    //printf("heating = %d, current = %d\n", heating_status, state->is_heating);
     if (heating_status != state->is_heating) {
         send_command(COMMAND_SEND_HEATING_STATUS, state);
     }

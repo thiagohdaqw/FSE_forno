@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <termios.h>
 #include <unistd.h>
+#include <semaphore.h>
 
 #include "crc16.h"
 
@@ -36,6 +37,7 @@ void init_uart(Uart *uart, char *device, char dst, char src, const char *identif
     uart->dst = dst;
     uart->src = src;
     uart->identifier = identifier;
+    sem_init(&uart->send_mutex, 0, 1);
 }
 
 int receive_data(Uart *uart, char *buffer, int buffer_size) {
@@ -130,25 +132,24 @@ int receive_message(Uart *uart, char dst, char code, char sub_code, char *messag
 }
 
 int send_message(Uart *uart, char code, char sub_code, char *data, int size) {
-    int sended = 0;
-    unsigned short crc = 0;
+    char buffer[20];
 
-    sended += write(uart->fd, &uart->dst, 1);
-    sended += write(uart->fd, &code, 1);
-    sended += write(uart->fd, &sub_code, 1);
-    sended += write(uart->fd, uart->identifier, 4);
+    buffer[0] = uart->dst;
+    buffer[1] = code;
+    buffer[2] = sub_code;
+    buffer[3] = uart->identifier[0];
+    buffer[4] = uart->identifier[1];
+    buffer[5] = uart->identifier[2];
+    buffer[6] = uart->identifier[3];
+    memcpy(buffer + 7, data, size);
 
-    crc = CRC16(crc, uart->dst);
-    crc = CRC16(crc, code);
-    crc = CRC16(crc, sub_code);
-    crc = calcula_CRC(crc, uart->identifier, 4);
+    unsigned short crc = calcula_CRC(0, buffer, 7 + size);
+    memcpy(buffer + 7 + size, &crc, 2);
 
-    if (size > 0) {
-        sended += write(uart->fd, data, size);
-        crc = calcula_CRC(crc, data, size);
-    }
+    sem_wait(&uart->send_mutex);
 
-    sended += write(uart->fd, &crc, 2);
+    int sended = write(uart->fd, &buffer, 7 + size + 2);
 
+    sem_post(&uart->send_mutex);
     return sended == 7 + size + 2;
 }

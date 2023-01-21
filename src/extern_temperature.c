@@ -9,15 +9,13 @@
 typedef struct {
     pthread_t tid;
     State *state;
-    CommandArgs *commands;
 } ExternTemperatureArgs;
 
 void *run_extern_temperature_worker(void *args);
 
-void init_extern_temperature(State *state, CommandArgs *commands) {
+void init_extern_temperature(State *state) {
     ExternTemperatureArgs *args = malloc(sizeof(ExternTemperatureArgs));
     
-    args->commands = commands;
     args->state = state;
 
     state->extern_temperature_device = init_bme280(EXTERN_TEMPERATURE_ADDRESS);
@@ -28,7 +26,6 @@ void init_extern_temperature(State *state, CommandArgs *commands) {
 void *run_extern_temperature_worker(void *args) {
     ExternTemperatureArgs *targs = (ExternTemperatureArgs *)args;
     State *state = targs->state;
-    CommandArgs *commands = targs->commands;
     int8_t result;
     float temperature;
     while (1) {

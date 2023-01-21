@@ -10,8 +10,6 @@
 #define APP_ADDRESS 0x00
 #define UART_DEVICE "/dev/serial0"
 
-#define FAN_MIN_PERCENT 40.0
-
 #define REFERENCE_TEMPERATURE_MODE_UART 0
 #define REFERENCE_TEMPERATURE_MODE_FILE 1
 #define REFERENCE_TEMPERATURE_MODE_DEBUG 2
@@ -23,7 +21,7 @@ typedef struct {
     float kp;
     float ki;
     float kd;
-    float value;
+    int value;
 } PID;
 
 typedef struct {
@@ -41,6 +39,7 @@ typedef struct {
     char is_heating;
 
     sem_t working_event;
+    sem_t heating_event;
     PID pid;
     struct bme280_dev *extern_temperature_device;
 } State;

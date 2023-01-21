@@ -7,6 +7,6 @@
 #define EXTERN_TEMPERATURE_POLLING_SECONDS 1
 #define EXTERN_TEMPERATURE_ADDRESS "/dev/i2c-1"
 
-void init_extern_temperature(State *state, CommandArgs *commands);
+void init_extern_temperature(State *state);
 
 #endif
