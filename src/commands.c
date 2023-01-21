@@ -4,11 +4,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <semaphore.h>
-
-#include "commands.h"
-#include "modbus.h"
-#include "state.h"
 #include <pid.h>
+
+#include "state.h"
+#include "modbus.h"
+#include "control.h"
+#include "commands.h"
 
 #define MESSAGE_BUFFER_MAX 10
 
@@ -96,8 +97,9 @@ void read_intern_temperature_read_command(Command *command, char *message, State
 }
 
 void read_reference_temperature_read_command(Command *command, char *message, State *state) {
-    memcpy(&state->reference_temperature, message, 4);
-    //printf("Reference temperature: %f\n", state->reference_temperature);
+    if (state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_UART) {
+        memcpy(&state->reference_temperature, message, 4);
+    }
 }
 
 void send_default_state_command(State *state, char working) {
@@ -114,8 +116,6 @@ void read_user_command(Command *command, char *message, State *state) {
     
     int user_command = -1;
     memcpy(&user_command, message, 4);
-
-    // printf("Command: %d\n", user_command);
 
     switch (user_command) {
     case USER_COMMAND_ON:
@@ -135,6 +135,12 @@ void read_user_command(Command *command, char *message, State *state) {
         send_command(COMMAND_SEND_HEATING_STATUS, state);
         if (state->is_heating) {
             sem_post(&state->heating_event);
+
+            if (state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_FILE) {
+                start_file_mode(state);
+            } else {
+                stop_file_mode(state);
+            }
         }
         break;
     case USER_COMMAND_HEATING_OFF:
@@ -142,11 +148,16 @@ void read_user_command(Command *command, char *message, State *state) {
         send_command(COMMAND_SEND_HEATING_STATUS, state);
         break;
     case USER_COMMAND_MENU:
-        if (!state->reference_temperature_debug_mode) {
-            state->reference_temperature_mode = state->reference_temperature_mode == REFERENCE_TEMPERATURE_MODE_UART
+        if (!state->reference_temperature.is_debug) {
+            state->reference_temperature.mode = state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_UART
                                                     ? REFERENCE_TEMPERATURE_MODE_FILE
                                                     : REFERENCE_TEMPERATURE_MODE_UART;
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
+            if (state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_FILE && state->is_heating) {
+                start_file_mode(state);
+            } else {
+                stop_file_mode(state);
+            }
         }
         break;
     }
@@ -165,7 +176,7 @@ void send_working_status_command(Command *command, State *state, Uart *uart) {
 }
 
 void send_reference_temperature_mode_command(Command *command, State *state, Uart *uart) {
-    char reference_temperature_mode = state->reference_temperature_mode != REFERENCE_TEMPERATURE_MODE_UART;
+    char reference_temperature_mode = state->reference_temperature.mode != REFERENCE_TEMPERATURE_MODE_UART;
     send_message(uart, command->code, command->sub_code, &reference_temperature_mode, 1);
 }
 
@@ -188,7 +199,7 @@ void read_working_status_command(Command *command, char *message, State *state) 
 void read_reference_temperature_mode_command(Command *command, char *message, State *state) {
     int reference_temperature_mode = 0;
     memcpy(&reference_temperature_mode, message, 4);
-    if (reference_temperature_mode != state->reference_temperature_mode) {
+    if (reference_temperature_mode != state->reference_temperature.mode) {
         send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
     }
 }
@@ -230,7 +241,7 @@ void fill_commands() {
     commands.commands[COMMAND_READ_REFERENCE_TEMPERATURE].message_size = 4;
     commands.read_funcs[COMMAND_READ_REFERENCE_TEMPERATURE] = read_reference_temperature_read_command;
     commands.send_funcs[COMMAND_READ_REFERENCE_TEMPERATURE] = send_empty_when_working_command;
-
+    
     commands.commands[COMMAND_READ_USER_COMMANDS].code = 0x23;
     commands.commands[COMMAND_READ_USER_COMMANDS].sub_code = 0xC3;
     commands.commands[COMMAND_READ_USER_COMMANDS].message_size = 4;

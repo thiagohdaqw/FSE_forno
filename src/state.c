@@ -4,10 +4,10 @@
 void set_default_state(State *state) {
     state->extern_temperature = 0;
     state->intern_temperature = 0;
-    state->reference_temperature_mode = REFERENCE_TEMPERATURE_MODE_DEFAULT;
+    state->reference_temperature.mode = REFERENCE_TEMPERATURE_MODE_DEFAULT;
 
-    state->reference_temperature = 0;
-    state->reference_temperature_debug_mode = 0;
+    state->reference_temperature.value = 0;
+    state->reference_temperature.is_debug = 0;
 
     state->fan_percent = 0;
     state->resistor_percent = 0;

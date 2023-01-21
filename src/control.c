@@ -1,10 +1,10 @@
+#include <wiringPi.h>
+#include <softPwm.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <softPwm.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <wiringPi.h>
+#include <stdlib.h>
 
 #include "commands.h"
 #include "control.h"
@@ -56,7 +56,7 @@ void *run_control_worker(void *args) {
         }
 
         pid_configura_constantes(state->pid.kp, state->pid.ki, state->pid.kd);
-        pid_atualiza_referencia(state->reference_temperature);
+        pid_atualiza_referencia(state->reference_temperature.value);
         state->pid.value = (int)pid_controle(state->intern_temperature);
         pid = state->pid.value;
 
@@ -71,14 +71,65 @@ void *run_control_worker(void *args) {
         softPwmWrite(FAN_PIN, pid);
         send_command(COMMAND_SEND_CONTROL, state);
 
-        printf("REF=%f IN=%f PID=%d RP=%d FP=%d\n", state->reference_temperature, state->intern_temperature, state->pid.value,
+        printf("REF=%f IN=%f PID=%d RP=%d FP=%d\n", state->reference_temperature.value, state->intern_temperature, state->pid.value,
                MAX(0, state->pid.value), pid);
-        // printf("KP=%f KI=%f KD=%f\n", state->pid.kp, state->pid.ki, state->pid.kd);
 
         if (state->is_working && state->is_heating) {
             sem_post(&state->heating_event);
         }
 
-        sleep(CONTROL_POLLING_SECONDS);
+        usleep(CONTROL_POLLING_US);
     }
+}
+
+void *run_file_mode(void *args) {
+    State *state = (State *)args;
+    ReferenceTemperature *rf = &state->reference_temperature;
+    char header_readed = 0;
+    pthread_t tid = rf->tid;
+    int sleep_seconds;
+    char time[15], temperature[15];
+    
+    rf->fd = fopen(REFERENCE_TEMPERATURE_FILE_PATH, "r");
+    if (rf->fd == NULL) {
+        fprintf(stderr, "Failed to open reference temperature file\n");
+        return NULL;
+    }
+
+    while (fscanf(rf->fd, "%[^,],%s ", time, temperature) == 2) {
+        if (!header_readed) {
+            header_readed = 1;
+            continue;
+        }
+        if (rf->mode != REFERENCE_TEMPERATURE_MODE_FILE || rf->tid != tid || !state->is_heating || !state->is_working) {
+            break;
+        }
+        rf->value = (float)atof(temperature);
+        sleep_seconds = atoi(time);
+        printf("%f %d\n", rf->value, sleep_seconds);
+        send_command(COMMAND_SEND_REFERENCE_TEMPERATURE, state);
+        sleep(sleep_seconds);
+    }
+    if (rf->fd) {
+        fclose(rf->fd);
+        rf->fd = NULL;
+    }
+    return NULL;
+}
+
+void stop_file_mode(State *state) {
+    ReferenceTemperature *rf = &state->reference_temperature;
+    if (rf->tid) {
+        pthread_cancel(rf->tid);
+        rf->tid = 0;
+    }
+    if (rf->fd) {
+        fclose(rf->fd);
+        rf->fd = NULL;
+    }
+}
+
+void start_file_mode(State *state) {
+    stop_file_mode(state);
+    pthread_create(&state->reference_temperature.tid, NULL, run_file_mode, state);
 }

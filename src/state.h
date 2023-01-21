@@ -2,7 +2,9 @@
 #define __STATE_H__
 
 #include <string.h>
+#include <pthread.h>
 #include <semaphore.h>
+#include <stdio.h>
 
 #include <bme280.h>
 
@@ -25,15 +27,21 @@ typedef struct {
 } PID;
 
 typedef struct {
+    float value;
+    char mode;
+    char is_debug;
+    pthread_t tid;
+    FILE *fd;
+} ReferenceTemperature;
+
+typedef struct {
     float resistor_percent;
     float fan_percent;
 
     float intern_temperature;
     float extern_temperature;
 
-    float reference_temperature;
-    char reference_temperature_mode;
-    char reference_temperature_debug_mode;
+    ReferenceTemperature reference_temperature;
 
     char is_working;
     char is_heating;

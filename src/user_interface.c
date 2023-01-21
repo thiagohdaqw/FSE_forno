@@ -41,23 +41,23 @@ void run_reference_temperature_interface(State *state) {
     while (1) {
         switch (read_reference_temperature_menu(state)) {
         case '1':
-            state->reference_temperature_mode =
+            state->reference_temperature.mode =
                 REFERENCE_TEMPERATURE_MODE_FILE;
-            state->reference_temperature_debug_mode = 1;
+            state->reference_temperature.is_debug = 1;
             printf("Temperatura de referencia: ");
-            scanf(" %f", &state->reference_temperature);
+            scanf(" %f", &state->reference_temperature.value);
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE, state);
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
             break;
         case '2':
-            state->reference_temperature_mode = REFERENCE_TEMPERATURE_MODE_UART;
-            state->reference_temperature_debug_mode = 0;
+            state->reference_temperature.mode = REFERENCE_TEMPERATURE_MODE_UART;
+            state->reference_temperature.is_debug = 0;
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
             break;
         case '3':
-            state->reference_temperature_mode = REFERENCE_TEMPERATURE_MODE_FILE;
+            state->reference_temperature.mode = REFERENCE_TEMPERATURE_MODE_FILE;
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
-            state->reference_temperature_debug_mode = 0;
+            state->reference_temperature.is_debug = 0;
             break;
         case '0':
             return;
@@ -86,15 +86,15 @@ char read_reference_temperature_menu(State *state) {
     printf("--- - Temperatura de Referencia (TR)\n");
     printf("[0] - Voltar\n");
     printf("[%c] - Modo Debug\n",
-           state->reference_temperature_mode == REFERENCE_TEMPERATURE_MODE_DEBUG
+           state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_DEBUG
                ? '*'
                : '1');
     printf("[%c] - Modo Dashboard UART\n",
-           state->reference_temperature_mode == REFERENCE_TEMPERATURE_MODE_UART
+           state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_UART
                ? '*'
                : '2');
     printf("[%c] - Modo Pre-definido em arquivo\n",
-           state->reference_temperature_mode == REFERENCE_TEMPERATURE_MODE_FILE
+           state->reference_temperature.mode == REFERENCE_TEMPERATURE_MODE_FILE
                ? '*'
                : '3');
     repeat_caracter('=', 100, '\n');
