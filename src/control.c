@@ -1,10 +1,10 @@
-#include <wiringPi.h>
-#include <softPwm.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <softPwm.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <wiringPi.h>
 
 #include "commands.h"
 #include "control.h"
@@ -71,9 +71,6 @@ void *run_control_worker(void *args) {
         softPwmWrite(FAN_PIN, pid);
         send_command(COMMAND_SEND_CONTROL, state);
 
-        printf("REF=%f IN=%f PID=%d RP=%d FP=%d\n", state->reference_temperature.value, state->intern_temperature, state->pid.value,
-               MAX(0, state->pid.value), pid);
-
         if (state->is_working && state->is_heating) {
             sem_post(&state->heating_event);
         }
@@ -89,7 +86,7 @@ void *run_file_mode(void *args) {
     pthread_t tid = rf->tid;
     int sleep_seconds;
     char time[15], temperature[15];
-    
+
     rf->fd = fopen(REFERENCE_TEMPERATURE_FILE_PATH, "r");
     if (rf->fd == NULL) {
         fprintf(stderr, "Failed to open reference temperature file\n");
