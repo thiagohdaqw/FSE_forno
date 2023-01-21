@@ -1,5 +1,5 @@
 CC = gcc
-LDFLAGS =
+LDFLAGS = -pthread
 BLDDIR = .
 INCDIR = $(BLDDIR)/inc
 SRCDIR = $(BLDDIR)/src
@@ -24,5 +24,5 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 clean:
 	-rm -f $(OBJDIR)/*.o $(EXE)
 
-run:
+run: all
 	$(EXE) $(ARGS)

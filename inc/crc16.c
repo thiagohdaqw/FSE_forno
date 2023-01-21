@@ -5,7 +5,7 @@
  *      Author: Renato Coral Sampaio
  */
 
-short CRC16(short crc, char data)
+short CRC16(unsigned short crc, char data)
 {
     const short tbl[256] = {
         0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
@@ -43,7 +43,7 @@ short CRC16(short crc, char data)
     return ((crc & 0xFF00) >> 8) ^ tbl[(crc & 0x00FF) ^ (data & 0x00FF)];
 }
 
-short calcula_CRC(short crc, char *commands, int size) {
+short calcula_CRC(unsigned short crc, const char *commands, int size) {
 	int i;
 	for(i=0;i<size;i++) {
 		crc = CRC16(crc, commands[i]);

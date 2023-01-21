@@ -3,6 +3,7 @@
 
 #include "state.h"
 #include "user_interface.h"
+#include "commands.h"
 
 char read_main_menu();
 void run_reference_temperature_interface(State *state);
@@ -42,12 +43,18 @@ void run_reference_temperature_interface(State *state) {
         case '1':
             state->reference_temperature_mode =
                 REFERENCE_TEMPERATURE_MODE_DEBUG;
+            printf("Temperatura de referencia: ");
+            scanf(" %f", &state->reference_temperature);
+            send_command(COMMAND_SEND_REFERENCE_TEMPERATURE, state);
+            send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
             break;
         case '2':
             state->reference_temperature_mode = REFERENCE_TEMPERATURE_MODE_UART;
+            send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
             break;
         case '3':
             state->reference_temperature_mode = REFERENCE_TEMPERATURE_MODE_FILE;
+            send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
             break;
         case '0':
             return;

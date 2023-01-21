@@ -13,81 +13,142 @@
 
 #define READ_UART_MIN_US 100 * 1000
 
-int init_uart(char *device, Uart *uart) {
-  uart->fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
+void init_uart(Uart *uart, char *device, char dst, char src, const char *identifier) {
+    memset(uart, 0, sizeof(Uart));
 
-  if (uart->fd == -1) {
-    return 0;
-  }
+    uart->fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
 
-  struct termios options;
-  tcgetattr(uart->fd, &options);
-  options.c_cflag = B9600 | CS8 | CLOCAL | CREAD;
-  options.c_iflag = IGNPAR;
-  options.c_oflag = 0;
-  options.c_lflag = 0;
-  tcflush(uart->fd, TCIFLUSH);
-  tcsetattr(uart->fd, TCSANOW, &options);
-  return 1;
-}
-
-int receive_data(Uart *uart, char *data, int size) {
-  int received = 0;
-  int bytes = 0;
-  struct timeval tv;
-
-  while (received < size) {
-    gettimeofday(&tv, NULL);
-    if (tv.tv_usec - uart->last_read.tv_usec < READ_UART_MIN_US) {
-      usleep(READ_UART_MIN_US - (tv.tv_usec - uart->last_read.tv_usec));
+    if (uart->fd == -1) {
+        fprintf(stderr, "UART: Failed to open device %s\n", device);
+        exit(1);
     }
 
-    bytes = read(uart->fd, data + received, size - received);
+    struct termios options;
+    tcgetattr(uart->fd, &options);
+    options.c_cflag = B9600 | CS8 | CLOCAL | CREAD;
+    options.c_iflag = IGNPAR;
+    options.c_oflag = 0;
+    options.c_lflag = 0;
+    tcflush(uart->fd, TCIFLUSH);
+    tcsetattr(uart->fd, TCSANOW, &options);
 
     gettimeofday(&uart->last_read, NULL);
-    if (bytes <= 0) {
-      return 0;
+    uart->dst = dst;
+    uart->src = src;
+    uart->identifier = identifier;
+}
+
+int receive_data(Uart *uart, char *buffer, int buffer_size) {
+    struct timeval tv;
+    int bytes = 0;
+
+    gettimeofday(&tv, NULL);
+    if (tv.tv_usec - uart->last_read.tv_usec < READ_UART_MIN_US) {
+        usleep(READ_UART_MIN_US - (tv.tv_usec - uart->last_read.tv_usec));
     }
-    received += bytes;
-  }
-  return 1;
+
+    bytes = read(uart->fd, buffer, buffer_size);
+
+    gettimeofday(&uart->last_read, NULL);
+    return bytes;
 }
 
-int receive_header(Uart *uart, char *buffer) {
-  if (!receive_data(uart, buffer, 3) || uart->src != buffer[0]) {
+int receive_safe_data(Uart *uart, char *buffer, int size) {
+    int received = 0;
+    int bytes = 0;
+
+    while (received < size) {
+        bytes = receive_data(uart, buffer + received, size - received);
+        if (bytes <= 0) {
+            return 0;
+        }
+        received += bytes;
+    }
+    return 1;
+}
+
+void load_buffer(Uart *uart) {
+    Buffer *buffer = &uart->buffer;
+
+    if (buffer->cursor >= buffer->length) {
+        memset(buffer->items, 0, BUFFER_SIZE);
+        buffer->length = receive_data(uart, buffer->items, BUFFER_SIZE);
+        buffer->cursor = 0;
+    }
+}
+
+int next_byte(Uart *uart, char *byte) {
+    Buffer *buffer = &uart->buffer;
+
+    load_buffer(uart);
+
+    if (buffer->cursor < buffer->length) {
+        *byte = buffer->items[buffer->cursor++];
+        return 1;
+    }
+
     return 0;
-  }
-  return 1;
 }
 
-char *receive_message(Uart *uart, char *buffer, int size) {
-  if (!receive_data(uart, buffer + 3, size + 2)) {
-    return 0;
-  }
+int receive_message(Uart *uart, char dst, char code, char sub_code, char *message, int size) {
+    Buffer *buffer = &uart->buffer;
+    int message_cursor = 0;
+    while (buffer->cursor < buffer->length && message_cursor < size) {
+        message[message_cursor++] = buffer->items[buffer->cursor++];
+    }
 
-  unsigned short crc = calcula_CRC(0, buffer, 3 + size);
-  unsigned short crc_received = 0;
-  memcpy(&crc_received, buffer + 3 + size, 2);
+    if (message_cursor < size || buffer->cursor + 2 > buffer->length) {
+        int buffer_items = buffer->cursor - buffer->length;
+        int length = size - message_cursor - 1 + 2 - buffer_items;
+        for (int i = 0; i < buffer_items; i++, buffer->cursor++) {
+            buffer->items[i] = buffer->items[buffer->cursor];
+        }
+        buffer->cursor = 0;
+        buffer->length = buffer_items;
+        if (!receive_safe_data(uart, buffer->items + buffer->length, length)) {
+            return 0;
+        }
+        while (message_cursor < size) {
+            message[message_cursor++] = buffer->items[buffer->cursor++];
+        }
+    }
 
-  if (crc != crc_received) {
-    return NULL;
-  }
-  return buffer + 3;
+    unsigned short crc = 0;
+    crc = CRC16(crc, dst);
+    crc = CRC16(crc, code);
+    crc = CRC16(crc, sub_code);
+    crc = calcula_CRC(crc, message, size);
+    unsigned short crc_received = 0;
+    memcpy(&crc_received, &buffer->items[buffer->cursor], 2);
+    buffer->cursor += 2;
+
+    if (crc != crc_received) {
+        printf("CRC DIFERENTE\n");
+        return 0;
+        return 1;
+    }
 }
 
-int send_message(Uart *uart, char code, char *data, int size) {
-  int sended = 0;
-  short crc = 0;
+int send_message(Uart *uart, char code, char sub_code, char *data, int size) {
+    int sended = 0;
+    unsigned short crc = 0;
 
-  sended += write(uart->fd, &uart->dst, 1);
-  sended += write(uart->fd, &code, 1);
-  sended += write(uart->fd, data, size);
+    sended += write(uart->fd, &uart->dst, 1);
+    sended += write(uart->fd, &code, 1);
+    sended += write(uart->fd, &sub_code, 1);
+    sended += write(uart->fd, uart->identifier, 4);
 
-  crc = CRC16(crc, uart->dst);
-  crc = CRC16(crc, code);
-  crc = calcula_CRC(crc, data, size);
+    crc = CRC16(crc, uart->dst);
+    crc = CRC16(crc, code);
+    crc = CRC16(crc, sub_code);
+    crc = calcula_CRC(crc, uart->identifier, 4);
 
-  sended += write(uart->fd, &crc, 2);
+    if (size > 0) {
+        sended += write(uart->fd, data, size);
+        crc = calcula_CRC(crc, data, size);
+    }
 
-  return sended == 1 + 1 + size + 2;
+    sended += write(uart->fd, &crc, 2);
+
+    return sended == 7 + size + 2;
 }
