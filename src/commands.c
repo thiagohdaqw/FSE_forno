@@ -76,7 +76,6 @@ void *read_commands(void *commands_args) {
                 command = &commands.commands[i];
                 if (command->code == code && command->sub_code == sub_code) {
                     memset(message, 0, MESSAGE_BUFFER_MAX);
-                    //printf("%d %d %d\n", dst, code, sub_code);
                     if (receive_message(commands.uart, dst, code, sub_code, message, command->message_size)) {
                         commands.read_funcs[i](command, message, commands.state);
                     } else {

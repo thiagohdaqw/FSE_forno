@@ -49,17 +49,19 @@ void run_reference_temperature_interface(State *state) {
             state->reference_temperature.value = read_float(0, 100);
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE, state);
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
+            stop_file_mode(state);
             break;
         case '2':
             state->reference_temperature.mode = REFERENCE_TEMPERATURE_MODE_UART;
             state->reference_temperature.is_debug = 0;
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
+            stop_file_mode(state);
             break;
         case '3':
             state->reference_temperature.mode = REFERENCE_TEMPERATURE_MODE_FILE;
             send_command(COMMAND_SEND_REFERENCE_TEMPERATURE_MODE, state);
-            start_file_mode(state);
             state->reference_temperature.is_debug = 0;
+            start_file_mode(state);
             break;
         case '0':
             return;

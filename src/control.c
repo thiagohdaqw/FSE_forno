@@ -84,7 +84,7 @@ void *run_file_mode(void *args) {
     ReferenceTemperature *rf = &state->reference_temperature;
     char header_readed = 0;
     pthread_t tid = rf->tid;
-    int sleep_seconds;
+    int sleep_seconds = 0, sleep_seconds_before = 0;
     char time[15], temperature[15];
 
     rf->fd = fopen(REFERENCE_TEMPERATURE_FILE_PATH, "r");
@@ -101,10 +101,15 @@ void *run_file_mode(void *args) {
         if (rf->mode != REFERENCE_TEMPERATURE_MODE_FILE || rf->tid != tid || !state->is_heating || !state->is_working) {
             break;
         }
-        rf->value = (float)atof(temperature);
         sleep_seconds = atoi(time);
+
+        sleep(sleep_seconds - sleep_seconds_before);
+        sleep_seconds_before = sleep_seconds;    
+
+
+        rf->value = (float)atof(temperature);
         send_command(COMMAND_SEND_REFERENCE_TEMPERATURE, state);
-        sleep(sleep_seconds);
+        
     }
     if (rf->fd) {
         fclose(rf->fd);
@@ -127,5 +132,8 @@ void stop_file_mode(State *state) {
 
 void start_file_mode(State *state) {
     stop_file_mode(state);
+    if (!state->is_working || !state->is_heating || state->reference_temperature.is_debug) {
+        return;
+    }
     pthread_create(&state->reference_temperature.tid, NULL, run_file_mode, state);
 }
