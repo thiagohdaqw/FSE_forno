@@ -125,7 +125,6 @@ int receive_message(Uart *uart, char dst, char code, char sub_code, char *messag
     buffer->cursor += 2;
 
     if (crc != crc_received) {
-        printf("CRC DIFERENTE\n");
         return 0;
     }
     return 1;

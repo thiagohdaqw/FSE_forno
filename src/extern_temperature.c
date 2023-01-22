@@ -38,7 +38,6 @@ void *run_extern_temperature_worker(void *args) {
         result = get_sensor_data_forced_mode(state->extern_temperature_device, &temperature);
         if (result == BME280_OK) {
             state->extern_temperature = temperature;
-            printf("Extern Temperature = %.2f\n", temperature);
             send_command(COMMAND_SEND_EXTERN_TEMPERATURE, state);
         }
 

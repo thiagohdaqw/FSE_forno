@@ -103,7 +103,6 @@ void *run_file_mode(void *args) {
         }
         rf->value = (float)atof(temperature);
         sleep_seconds = atoi(time);
-        printf("%f %d\n", rf->value, sleep_seconds);
         send_command(COMMAND_SEND_REFERENCE_TEMPERATURE, state);
         sleep(sleep_seconds);
     }
